@@ -1,241 +1,251 @@
 %{
+    #include "semantic.c"
+    #include <stdio.h>
+    #include <stdlib.h>
+    #include <string.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+    char nom[256];
 
-extern int yylineno;
-
-int yyerror(char const * msg);	
-int yylex(void);
-
+	int yylex(void);
+	extern int yylineno;
+	extern int i;
+    extern int j;
+	void yyerror(const char *str);
+	void syntaxerror (const char *str);
+	void Begin();
+    void End();
 %}
 
-%token PROGRAM 
-%token CLASS
-%token EXTENDS
-%token PUBLIC
-%token PRIVATE
-%token STATIC
-%token MAIN
-%token RETURN
-%token THIS
-%token WHILE
-%token IF
-%token ELSE
-%token PROTECTED
-%token SYSTEM_OUT_PRINTLN
-%token INTERFACE
-%token FOR
-%token CONTINUE
-%token BREAK
-%token NUL
-%token NEW
-%token STR
-%token INT
-%token BOOLEAN
-%token VOID
-%token P_OUVRANTE
-%token P_FERMANTE
-%token C_OUVRANTE
-%token C_FERMANTE
-%token BLOCK_START
-%token BLOCK_END
-%token INTEGER_LITERAL
+%token IDENTIFIER
+%token TYPE_INT
+%token TYPE_BOOLEAN
+%token TYPE_STRING
+
 %token BOOLEAN_LITERAL
-%token STRING
-%token LENGTH
-%token VIRGULE
-%token POINT_VIRGULE
-%token POINT
-%token OPPAFFECT
-%token OPPEQUALITY
-%token OPPINEQUALITY
-%token OPPSUPEQUALITY
-%token OPPINFEQUALITY
-%token OPPINF
-%token OPPSUP
-%token OPPAND
-%token OPPOR
-%token OPPADD
-%token OPPSUB
-%token OPPMULTIPLY
-%token OPPDIV
-%token NOT
-%token ID
+%token INTEGER_LITERAL
+%token STRING_LITERAL
 
-%start programme
+%token KEYWORD_CLASS
+%token KEYWORD_PUBLIC
+%token KEYWORD_MAIN
+%token KEYWORD_EXTENDS
+%token KEYWORD_RETURN
+%token KEYWORD_IF
+%token KEYWORD_ELSE
+%token KEYWORD_WHILE
+%token KEYWORD_PRINT
+%token KEYWORD_LENGTH
+%token KEYWORD_THIS
+%token KEYWORD_NEW
 
-%%
+%token PARENTHESE_OPEN
+%token PARENTHESE_CLOSE
+%token BRACKET_OPEN
+%token BRACKET_CLOSE
+%token BRACE_OPEN
+%token BRACE_CLOSE
 
-programme 				: MainClass  ClassDeclarations	
-                        | MainClass
-                        | ClassDeclarations
-						;
-MainClass               : CLASS ID BLOCK_START PUBLIC STATIC VOID MAIN P_OUVRANTE STR C_OUVRANTE C_FERMANTE ID P_FERMANTE BLOCK_START Statement BLOCK_END BLOCK_END
-                        | CLASS error BLOCK_START PUBLIC STATIC VOID MAIN P_OUVRANTE STR C_OUVRANTE C_FERMANTE ID P_FERMANTE BLOCK_START Statement BLOCK_END BLOCK_END {yyerror (" invalid declaration : class name not found"); }
-                        | CLASS ID error PUBLIC STATIC VOID MAIN P_OUVRANTE STR C_OUVRANTE C_FERMANTE ID P_FERMANTE BLOCK_START Statement BLOCK_END BLOCK_END {yyerror ("declaration invalid : '{' expected but not found"); }
-                        | CLASS ID BLOCK_START PUBLIC STATIC VOID MAIN error STR C_OUVRANTE C_FERMANTE ID P_FERMANTE BLOCK_START Statement BLOCK_END BLOCK_END {yyerror ("declaration invalid : '(' expected but not found"); }
-                        | CLASS ID BLOCK_START PUBLIC STATIC VOID error P_OUVRANTE STR C_OUVRANTE C_FERMANTE ID P_FERMANTE BLOCK_START Statement BLOCK_END BLOCK_END {yyerror (" invalid declaration : class main not found"); }
-                        | CLASS ID BLOCK_START PUBLIC STATIC VOID MAIN P_OUVRANTE STR C_OUVRANTE error ID P_FERMANTE BLOCK_START Statement BLOCK_END BLOCK_END {yyerror (" invalid declaration : ']' expected but not found"); }
-                        | CLASS ID BLOCK_START PUBLIC STATIC VOID MAIN P_OUVRANTE STR C_OUVRANTE C_FERMANTE ID error BLOCK_START Statement BLOCK_END BLOCK_END {yyerror (" invalid declaration : ')' expected but not found"); }
-                        | CLASS ID BLOCK_START PUBLIC STATIC VOID MAIN P_OUVRANTE STR C_OUVRANTE C_FERMANTE ID P_FERMANTE BLOCK_START Statement error BLOCK_END {yyerror (" invalid declaration : '}' expected but not found"); }
-                        | CLASS error BLOCK_START PUBLIC STATIC VOID MAIN P_OUVRANTE STR C_OUVRANTE C_FERMANTE ID P_FERMANTE BLOCK_START Statement BLOCK_END error {yyerror (" invalid declaration :'}' expected but not found"); }
-                        ;
-ClassDeclarations       : ClassDeclaration ClassDeclarations                      
-                        | epsilon
-                        ;
-ClassDeclaration        : CLASS ID EXTENDSID BLOCK_START VarDeclarations MethodDeclarations BLOCK_END
-                        | CLASS error EXTENDSID BLOCK_START VarDeclarations MethodDeclarations BLOCK_END {yyerror ("declaration invalid : Keyword invalid"); }
-                        | CLASS ID EXTENDSID error VarDeclarations MethodDeclarations BLOCK_END {yyerror ("declaration invalid : '{' expect but not found"); }
-                        | CLASS ID EXTENDSID BLOCK_START VarDeclarations MethodDeclarations error {yyerror ("declaration invalid : '}' expect but not found "); }
-                        | error ID EXTENDSID BLOCK_START VarDeclarations MethodDeclarations BLOCK_END {yyerror ("declaration invalid : keyword CLASS not found "); }
-                        ;
-EXTENDSID		        : EXTENDS ID
-                        | epsilon
-                        | error ID  {yyerror ("declaration invalid : keyword EXTENDS not found");}
-                        ;
-VarDeclarations         : VarDeclaration VarDeclarations
-                        | epsilon
-                        ;
-MethodDeclarations      : MethodDeclaration MethodDeclarations
-                        | epsilon
-                        ;
-VarDeclaration          : type ID POINT_VIRGULE
-                        | type error POINT_VIRGULE {yyerror ("invalid identifier");}
-                        | type ID error {yyerror ("declaration invalid : ';' expect but not found"); }
-                        ;
-MethodDeclaration       : PUBLIC type ID P_OUVRANTE argDeclarations P_FERMANTE BLOCK_START VarDeclarations Statements RETURN expression POINT_VIRGULE BLOCK_END
-                        | error type ID P_OUVRANTE argDeclarations P_FERMANTE BLOCK_START VarDeclarations Statements RETURN expression POINT_VIRGULE BLOCK_END    {yyerror ("declaration invalid : PUBLIC missing");}
-                        | PUBLIC type error P_OUVRANTE argDeclarations P_FERMANTE BLOCK_START VarDeclarations Statements RETURN expression POINT_VIRGULE BLOCK_END      {yyerror ("invalid identifier"); } 
-                        | PUBLIC type ID error argDeclarations P_FERMANTE BLOCK_START VarDeclarations Statements RETURN expression POINT_VIRGULE BLOCK_END      {yyerror ("declaration invalid : '(' expected but not found"); } 
-                        | PUBLIC type ID P_OUVRANTE argDeclarations error BLOCK_START VarDeclarations Statements RETURN expression POINT_VIRGULE BLOCK_END     {yyerror ("declaration invalid : ')' expected but not found"); }
-                        | PUBLIC type ID P_OUVRANTE argDeclarations P_FERMANTE  error VarDeclarations Statements RETURN expression POINT_VIRGULE BLOCK_END     {yyerror ("declaration invalid : '{' expected but not found"); }
-                        | PUBLIC type ID P_OUVRANTE argDeclarations P_FERMANTE  BLOCK_START VarDeclarations Statements error expression POINT_VIRGULE BLOCK_END     {yyerror ("RETURN missing"); }
-                        | PUBLIC type ID P_OUVRANTE argDeclarations P_FERMANTE  BLOCK_START VarDeclarations Statements RETURN expression error BLOCK_END     {yyerror ("declaration invalid : ';' expected but not found"); }
-                        | PUBLIC type ID P_OUVRANTE argDeclarations P_FERMANTE  BLOCK_START VarDeclarations Statements RETURN expression POINT_VIRGULE error     {yyerror ("declaration invalid : '}' expected but not found"); }
-                        ;
-argDeclarations         : argDeclaration VIRGULE argDeclarations
-                        | argDeclaration error argDeclarations {yyerror ("declaration invalid : ',' expected but not found");}
-                        | argDeclaration VIRGULE error {yyerror ("declaration invalid : ',' unexpected but found");}
-                        | argDeclaration
-                        | epsilon
-                        ;
-argDeclaration          : type ID 
-                        | type error      {yyerror ("invalid identifier");} 
-                        ;
-type                    : INT C_OUVRANTE C_FERMANTE
-                        | INT error C_FERMANTE                 {yyerror ("declaration invalid : '[' expected but not found"); } 
-			            | INT C_OUVRANTE error                 {yyerror ("declaration invalid : ']' expected but not found");} 
-                        | INT
-                        | BOOLEAN
-                        | ID
-                        | error                                  {yyerror ("error in type");} 
-                        ;
-Statements              : Statement Statements
-                        | epsilon
-                        ;
-Statement               : Statements
-                        | IF P_OUVRANTE expression P_FERMANTE Statement ELSE Statement
-                        | error P_OUVRANTE expression P_FERMANTE  Statement ELSE  Statement            {yyerror ("missing keyword IF");}
-                        | IF error expression P_FERMANTE  Statement  ELSE  Statement                   {yyerror (" declaration invalid : '(' expected but not found"); }
-                        | IF P_OUVRANTE expression error  Statement   ELSE  Statement                  {yyerror (" declaration invalid : ')' expected but not found "); }
-                        | IF P_OUVRANTE expression P_FERMANTE  Statement  error  Statement             {yyerror ("missing keyword ELSE ");}
+%token OP_AFFECT
+%token OP_AND
+%token OP_LESS
+%token OP_ADD
+%token OP_SUBSTRACT
+%token OP_MULTIPLY
+%token OP_NOT
 
-                        | WHILE P_OUVRANTE expression P_FERMANTE Statement
-                        | error P_OUVRANTE expression P_FERMANTE  Statement                             {yyerror ("missing keyword WHILE");}
-                        | WHILE error expression P_FERMANTE  Statement                                  {yyerror (" declaration invalid : '(' expected but not found ");}
-                        | WHILE P_OUVRANTE expression error  Statement                                  {yyerror ("declaration invalid : ')' expected but not found");}
+%token SEMI_COLON
+%token DOT
+%token COMMA
 
-                        | SYSTEM_OUT_PRINTLN P_OUVRANTE expression P_FERMANTE POINT_VIRGULE
-                        | error P_OUVRANTE expression P_FERMANTE  POINT_VIRGULE                       {yyerror ("missing keyword  SYSTEM_OUT_PRINTLN");}
-                        | SYSTEM_OUT_PRINTLN error expression P_FERMANTE  POINT_VIRGULE                 {yyerror ("declaration invalid : '(' expected but not found");}
-                        | SYSTEM_OUT_PRINTLN P_OUVRANTE expression error  POINT_VIRGULE                 {yyerror (" declaration invalid : ')' expected but not found");}
-                        | SYSTEM_OUT_PRINTLN P_OUVRANTE expression P_FERMANTE  error                    {yyerror ("declaration invalid : ';' expected but not found");}
-
-                        | ID OPPAFFECT expression POINT_VIRGULE
-                        | error OPPAFFECT expression POINT_VIRGULE                                      {yyerror ("invalid identifier ");}
-                        | ID error expression POINT_VIRGULE                                             {yyerror ("AFFECTATION missing");}
-                        | ID OPPAFFECT expression error                                                 {yyerror ("declaration invalid : ';' expected but not found");}
-
-                        | ID C_OUVRANTE expression C_FERMANTE OPPAFFECT expression POINT_VIRGULE
-                        | error C_OUVRANTE expression C_FERMANTE OPPAFFECT expression POINT_VIRGULE     {yyerror ("invalid identifier ");}
-                        | ID error expression C_FERMANTE OPPAFFECT expression POINT_VIRGULE             {yyerror ("declaration invalid : '[' expected but not found ");}
-                        | ID C_OUVRANTE expression error OPPAFFECT expression POINT_VIRGULE             {yyerror ("declaration invalid : ']' expected but not found ");}
-                        | ID C_OUVRANTE expression C_FERMANTE error expression POINT_VIRGULE            {yyerror ("AFFECTATION missing")}
-                        | ID C_OUVRANTE expression C_FERMANTE OPPAFFECT expression error                {yyerror ("declaration invalid : ';' expected but not found");}
-                        ;  
-expression              : INTEGER_LITERAL expressionComp
-                        | BOOLEAN_LITERAL expressionComp
-                        | ID expressionComp
-                        | THIS expressionComp
-                        | error expressionComp                                                          {yyerror ("Expression error");}
-
-                        | NEW INT C_OUVRANTE expression C_FERMANTE 
-                        | error INT C_OUVRANTE expression C_FERMANTE                        {yyerror (" keyword NEW missing ");}
-                        | NEW error C_OUVRANTE expression C_FERMANTE                                    {yyerror (" keyword INT missing  ");}
-                        | NEW INT error expression C_FERMANTE                               {yyerror ("declaration invalid : '[' expected but not found ");}
-                        | NEW INT C_OUVRANTE expression error                               {yyerror (" declaration invalid : ']' expected but not found  ");}
-
-                        | NEW ID P_OUVRANTE P_FERMANTE 
-                        | error ID P_OUVRANTE P_FERMANTE                                                {yyerror (" keyword NEW missing");}
-                        | NEW error P_OUVRANTE P_FERMANTE                                               {yyerror (" invalid identifie ");}
-                        | NEW ID error P_FERMANTE                                                       {yyerror ("declaration invalid : '(' expected but not found");} 
-                        | NEW ID P_OUVRANTE error                                                       {yyerror ("declaration invalid : ')' expected but not found");} 
-
-                        | NOT expression 
-                        | error expression                                                {yyerror ("expression error");} 
-
-                        | P_OUVRANTE expression P_FERMANTE expressionComp
-                        | error expression P_FERMANTE expressionComp                                    {yyerror ("declaration invalid : '(' expected but not found");}  
-                        | P_OUVRANTE expression error expressionComp                                    {yyerror ("declaration invalid : ')' expected but not found");}
-
-                        | STRING expressionComp
-                        | epsilon
-                        ;
-expressionComp          :C_OUVRANTE expression C_FERMANTE expression expressionComp
-						| error expression C_FERMANTE expression expressionComp                                        {yyerror ("declaration invalid : '[' expected but not found");}
-						| C_OUVRANTE expression error expression expressionComp                                        {yyerror ("declaration invalid : ']' expected but not found");}
-
-						| POINT LENGTH expression expressionComp
-                        | error LENGTH expression expressionComp                                       {yyerror ("declaration invalid : '.' expected but not found");}
-                        | POINT error expression expressionComp                                        {yyerror ("declaration invalid : 'LENGTH' expected but not found");}
-
-
-						| POINT ID P_OUVRANTE expressions P_FERMANTE expression expressionComp
-                        | error ID P_OUVRANTE expressions P_FERMANTE expression expressionComp                                      {yyerror ("declaration invalid : '.' expected but not found");}
-                        | POINT error P_OUVRANTE expressions P_FERMANTE expression expressionComp                                   {yyerror ("invalid indentifier");}
-                        | POINT ID error expressions P_FERMANTE expression expressionComp                                      {yyerror ("declaration invalid : '(' expected but not found");}
-                        | POINT ID P_OUVRANTE expressions error expression expressionComp                                      {yyerror ("declaration invalid : ')' expected but not found");}
-						
-                        | OPPAND expression expressionComp
-					    | OPPOR expression expressionComp
-						| OPPSUP expression expressionComp
-						| OPPINF expression expressionComp
-						| OPPADD expression expressionComp
-						| OPPSUB expression expressionComp
-						| OPPMULTIPLY expression expressionComp
-                        | error expression expressionComp                                                              {yyerror ("Missing orperator");}
-
-                        | epsilon
-						;
-expressions             : expression VIRGULE expressions
-                        | expression 
-                        ;   
-
-epsilon			:
+%start Program
 
 %%
 
+Program		           : MainClass ClassDeclarationS
+                       | error ClassDeclarationS {syntaxerror ("main class missing"); }
+                       | error MainClass ClassDeclarationS {syntaxerror ("code out of class"); }
+                       | MainClass error ClassDeclarationS {syntaxerror ("code out of class"); }
+                       | MainClass ClassDeclarationS error {syntaxerror ("code out of class"); }
+                       ;
+MainClass              : MainHead MainBody
+                       ;
+MainHead               : ClassHead BRACE_OPEN KEYWORD_PUBLIC KEYWORD_MAIN{ g_type = tVoid; verifierFoncID("main"); } PARENTHESE_OPEN TYPE_STRING {g_type = tString;}BRACKET_OPEN BRACKET_CLOSE
+                       | ClassHead BRACE_OPEN error KEYWORD_PUBLIC KEYWORD_MAIN PARENTHESE_OPEN TYPE_STRING BRACKET_OPEN BRACKET_CLOSE {syntaxerror ("public keyword missing");}
+                       | ClassHead BRACE_OPEN error KEYWORD_MAIN PARENTHESE_OPEN TYPE_STRING BRACKET_OPEN BRACKET_CLOSE {syntaxerror ("public keyword missing");}
+                       ;
+MainBody               : IDENTIFIER{ verifierVarID(nom);} PARENTHESE_CLOSE { foncDecEnd(); } BRACE_OPEN StatementS  BRACE_CLOSE {finFonction();} MethodDeclarationS BRACE_CLOSE {finClass();}
+                       ;
+ClassDeclarationS	   : ClassDeclaration ClassDeclarationS
+                       |
+                       | ClassDeclaration error ClassDeclarationS {syntaxerror ("code out of class"); }
+                       ;
+ClassDeclaration       : ClassHead KEYWORD_EXTENDS Identifier BRACE_OPEN VarDeclarationS MethodDeclarationS BRACE_CLOSE {finClass();}
+                       | ClassHead KEYWORD_EXTENDS error BRACE_OPEN VarDeclarationS MethodDeclarationS BRACE_CLOSE {syntaxerror ("parent class identifier missing"); }
+                       | ClassHead KEYWORD_EXTENDS Identifier BRACE_OPEN VarDeclarationS MethodDeclarationS error {syntaxerror ("closing brace missing"); }
+                       | ClassHead BRACE_OPEN VarDeclarationS MethodDeclarationS BRACE_CLOSE {finClass();}
+                       | ClassHead BRACE_OPEN VarDeclarationS MethodDeclarationS error {syntaxerror ("closing brace missing"); }
+                       ;
+ClassHead              : KEYWORD_CLASS Identifier {verifierClassID(nom);}
+                       | error Identifier {syntaxerror ("class keyword missing"); }
+                       ;
+VarDeclarationS        : VarDeclaration VarDeclarationS
+                       |
+                       ;
+VarDeclaration         : Variable {verifierVarID(nom);} SEMI_COLON
+                       | Variable error {syntaxerror ("semicolon missing"); }
+                       ;
+VariableS              : Variable {verifierVarID(nom);} COMMA VariableS
+                       | Variable {verifierVarID(nom);}
+                       |
+                       | Variable error VariableS {syntaxerror ("comma missing"); }
+                       ;
+Variable               : Type Identifier
+                       | error Identifier {syntaxerror ("invalid type"); }
+                       | Type error {syntaxerror ("invalid identifier"); }
+                       ;
+MethodDeclarationS     : MethodDeclaration MethodDeclarationS
+                       |
+                       | MethodDeclaration error MethodDeclarationS {syntaxerror ("code out of method"); }
+                       | MethodDeclaration MethodDeclarationS error {syntaxerror ("code out of method"); }
+                       ;
+MethodDeclaration      : KEYWORD_PUBLIC Variable { verifierFoncID(nom); }PARENTHESE_OPEN VariableS PARENTHESE_CLOSE {foncDecEnd();} BRACE_OPEN StatementS  KEYWORD_RETURN Expression SEMI_COLON BRACE_CLOSE {finFonction();}
+                       | error KEYWORD_PUBLIC Variable PARENTHESE_OPEN VariableS PARENTHESE_CLOSE BRACE_OPEN StatementS  KEYWORD_RETURN Expression SEMI_COLON BRACE_CLOSE {syntaxerror ("public keyword missing"); }
+                       | KEYWORD_PUBLIC error Identifier PARENTHESE_OPEN VariableS PARENTHESE_CLOSE BRACE_OPEN StatementS  KEYWORD_RETURN Expression SEMI_COLON BRACE_CLOSE {syntaxerror ("type missing"); }
+                       | KEYWORD_PUBLIC Type error PARENTHESE_OPEN VariableS PARENTHESE_CLOSE BRACE_OPEN StatementS  KEYWORD_RETURN Expression SEMI_COLON BRACE_CLOSE {syntaxerror ("method name missing"); }
+                       //| KEYWORD_PUBLIC Type Identifier PARENTHESE_OPEN VariableS PARENTHESE_CLOSE BRACE_OPEN StatementS error Expression SEMI_COLON BRACE_CLOSE {syntaxerror ("return keyword missing"); }
+                       ;
 
-int yyerror(char const *msg) {
-	fprintf(stderr, "%s %d\n", msg,yylineno);
-	return 0;	
-}
+Type                   : TYPE_INT BRACKET_OPEN BRACKET_CLOSE { g_type = tInt; }
+                       | TYPE_BOOLEAN { g_type = tBoolean; }
+                       | TYPE_INT { g_type = tInt; }
+                       | TYPE_STRING{ g_type = tString; }
+                       | TYPE_INT BRACKET_OPEN error {syntaxerror ("closing bracket missing"); }
+                       | error BRACKET_OPEN BRACKET_CLOSE {syntaxerror ("invalid array type"); }
+                       | TYPE_INT error BRACKET_CLOSE {syntaxerror ("opening bracket missing"); }
+                       ;
+StatementS             : Statement StatementS
+                       | Statement
+                       |
+                       ;
+Statement              : BRACE_OPEN StatementS BRACE_CLOSE
+                       | BRACE_OPEN StatementS error {syntaxerror ("closing brace missing"); }
+                       | error StatementS BRACE_CLOSE {syntaxerror ("opening brace missing"); }
+                       | VarDeclaration
+                       | KEYWORD_IF PARENTHESE_OPEN Expression PARENTHESE_CLOSE StatementS KEYWORD_ELSE StatementS
+                       | KEYWORD_IF error Expression PARENTHESE_CLOSE StatementS KEYWORD_ELSE StatementS {syntaxerror ("opening parentheses missing"); }
+                       | KEYWORD_IF PARENTHESE_OPEN Expression error Statement KEYWORD_ELSE StatementS {syntaxerror ("closing parentheses missing"); }
+                       | KEYWORD_IF error StatementS KEYWORD_ELSE StatementS {syntaxerror ("if condition missing"); }
+                       | KEYWORD_IF PARENTHESE_OPEN Expression PARENTHESE_CLOSE StatementS
+                       | KEYWORD_IF PARENTHESE_OPEN Expression error StatementS {syntaxerror ("closing parentheses missing"); }
+                       | KEYWORD_IF error StatementS {syntaxerror ("if condition missing"); }
+                       | KEYWORD_WHILE PARENTHESE_OPEN Expression PARENTHESE_CLOSE StatementS
+                       | KEYWORD_WHILE PARENTHESE_OPEN Expression error StatementS {syntaxerror ("closing parentheses missing"); }
+                       | KEYWORD_WHILE error Statement {syntaxerror ("while condition missing"); }
+                       | KEYWORD_PRINT PARENTHESE_OPEN Expression PARENTHESE_CLOSE SEMI_COLON
+                       | KEYWORD_PRINT PARENTHESE_OPEN Expression PARENTHESE_CLOSE error {syntaxerror ("semicolon missing"); }
+                       | KEYWORD_PRINT PARENTHESE_OPEN Expression error SEMI_COLON {syntaxerror ("closing parentheses missing"); }
+                       | Identifieraff OP_AFFECT Expression SEMI_COLON
+                       | Identifieraff OP_AFFECT Expression error {syntaxerror ("semicolon missing"); }
+                       | Identifieraff OP_AFFECT error SEMI_COLON {syntaxerror ("second expression missing"); }
+                       | Identifieraff error Expression SEMI_COLON{syntaxerror ("'=' expected"); }
+                       | Identifieraff BRACKET_OPEN Expression BRACKET_CLOSE OP_AFFECT Expression SEMI_COLON
+                       | Identifieraff error Expression BRACKET_CLOSE OP_AFFECT Expression SEMI_COLON {syntaxerror ("opening bracket missing"); }
+                       | Identifieraff BRACKET_OPEN Expression error OP_AFFECT Expression SEMI_COLON {syntaxerror ("closing bracket missing"); }
+                       | Identifieraff BRACKET_OPEN Expression BRACKET_CLOSE error Expression SEMI_COLON {syntaxerror ("'=' expected"); }
+                       | Identifieraff BRACKET_OPEN Expression BRACKET_CLOSE OP_AFFECT Expression error {syntaxerror ("semicolon missing"); }
+                       ;
+Expression             : INTEGER_LITERAL ExpressionComp
+                       | BOOLEAN_LITERAL ExpressionComp
+                       | STRING_LITERAL ExpressionComp
+                       | Identifierexp ExpressionComp
+                       | KEYWORD_THIS ExpressionComp
+                       | KEYWORD_NEW TYPE_INT BRACKET_OPEN Expression BRACKET_CLOSE ExpressionComp
+                       | KEYWORD_NEW TYPE_INT error Expression BRACKET_CLOSE ExpressionComp {syntaxerror ("opening bracket missing"); }
+                       | KEYWORD_NEW error BRACKET_OPEN Expression BRACKET_CLOSE ExpressionComp {syntaxerror ("invalid array type"); }
+                       | KEYWORD_NEW TYPE_INT BRACKET_OPEN Expression error ExpressionComp {syntaxerror ("closing bracket missing"); }
+                       | KEYWORD_NEW Identifier PARENTHESE_OPEN PARENTHESE_CLOSE ExpressionComp
+                       | KEYWORD_NEW error PARENTHESE_OPEN PARENTHESE_CLOSE ExpressionComp {syntaxerror ("invalid identifier"); }
+                       | KEYWORD_NEW Identifier error PARENTHESE_CLOSE ExpressionComp {syntaxerror ("opening parentheses missing"); }
+                       | KEYWORD_NEW Identifier PARENTHESE_OPEN error ExpressionComp {syntaxerror ("closing parentheses missing"); }
+                       | KEYWORD_NEW Identifier PARENTHESE_OPEN ExpressionS PARENTHESE_CLOSE ExpressionComp
+                       | KEYWORD_NEW error PARENTHESE_OPEN ExpressionS PARENTHESE_CLOSE ExpressionComp {syntaxerror ("invalid identifier"); }
+                       | KEYWORD_NEW Identifier error ExpressionS PARENTHESE_CLOSE ExpressionComp {syntaxerror ("opening parentheses missing"); }
+                       | KEYWORD_NEW Identifier PARENTHESE_OPEN ExpressionS error ExpressionComp {syntaxerror ("closing parentheses missing"); }
+                       | OP_NOT Expression ExpressionComp
+                       | PARENTHESE_OPEN Expression PARENTHESE_CLOSE ExpressionComp
+                       | error Expression PARENTHESE_CLOSE ExpressionComp {syntaxerror ("opening parentheses missing"); }
+                       | PARENTHESE_OPEN Expression error ExpressionComp {syntaxerror ("closing parentheses missing"); }
+                       ;
+ExpressionComp         : Operator Expression ExpressionComp
+                       | BRACKET_OPEN Expression BRACKET_CLOSE ExpressionComp
+                       | BRACKET_OPEN Expression error ExpressionComp  {syntaxerror ("closing bracket missing"); }
+                       | DOT KEYWORD_LENGTH ExpressionComp
+                       | DOT error KEYWORD_LENGTH ExpressionComp {syntaxerror ("invalid .length"); }
+                       | MethodCall PARENTHESE_OPEN ExpressionS PARENTHESE_CLOSE{foncCallEnd();} ExpressionComp
+                       | MethodCall error ExpressionS PARENTHESE_CLOSE ExpressionComp {syntaxerror("opening parentheses missing"); }
+                       | MethodCall PARENTHESE_OPEN ExpressionS error ExpressionComp {syntaxerror("closing parentheses missing"); }
+                       | MethodCall PARENTHESE_OPEN PARENTHESE_CLOSE {g_nbParam = 0;foncCallEnd();} ExpressionComp
+                       | MethodCall error PARENTHESE_CLOSE ExpressionComp {syntaxerror ("opening parentheses missing"); }
+                       | MethodCall PARENTHESE_OPEN error ExpressionComp {syntaxerror ("closing parentheses missing"); }
+                       |
+                       ;
+MethodCall             : DOT Identifier {verifierFoncIDDeclare(nom);}
+                       ;
+ExpressionS            : Expression {g_nbParam ++;} COMMA ExpressionS
+                       | Expression {g_nbParam ++;}
+                       | Expression error ExpressionS {syntaxerror ("comma missing"); }
+                       ;
+Operator               : OP_ADD
+                       | OP_AND
+                       | OP_LESS
+                       | OP_MULTIPLY
+                       | OP_SUBSTRACT
+                       ;
+Identifier             : IDENTIFIER
+                       ;
+Identifierexp          : IDENTIFIER {checkID(nom);}
+                       ;
+Identifieraff          : IDENTIFIER {checkIDOnInit(nom);}
+                       ;
+
+
+
+%%
+
 
 extern FILE *yyin;
 
-int main()
+int main(int argc, char **argv)
 {
- yyparse();
+    yyin = fopen(argv[1], "r");
+    Begin();
+    yyparse();
+    End();
+    return 1;
+}
+
+
+
+void Begin()
+{
+	table = NULL;
+	table_local = NULL;
+	table_class = NULL;
+
+	g_type = NODE_TYPE_UNKNOWN;
+
+	g_nbParam = 0;
+
+	g_IfFonc = 0 ;
+    g_IfFoncParameters = 0 ;
+    g_IfClass = 0 ;
+}
+
+void End()
+{
+    fclose(yyin);
+    destructSymbolsTable(table_local);
+	destructSymbolsTable(table);
+	destructSymbolsTable(table_class);
+	exit(0);
 }

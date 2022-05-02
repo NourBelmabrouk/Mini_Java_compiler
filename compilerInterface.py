@@ -23,7 +23,7 @@ def Compile():
     with open(filepath, "w") as output_file:
         text = txt_edit.get(1.0, tk.END)
         output_file.write(text)
-    result = subprocess.check_output(["SyntaxicAnalyser.exe", "<", filepath] , stderr=subprocess.STDOUT, shell=True)
+    result = subprocess.check_output(["compiler.exe", "<", filepath] , stderr=subprocess.STDOUT, shell=True)
     result = result.decode('cp850')
     result = result.strip()
     if (result == ""):
