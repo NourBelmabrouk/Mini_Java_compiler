@@ -1,116 +1,151 @@
-%{	
- 
-#include <stdio.h>	
-#include <stdlib.h>	          
-#include <string.h>
-#include <math.h>	
-#include "SyntaxicAnalyser.tab.h"	
+%{
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+ #include <math.h>
+ #include "SyntaxicAnalyser.tab.h"
 
-int line =1;
+int i=0;
+int j=0;
+extern char nom[];
+
+ void yyerror(char const *msg);
+ void lexicerror ( const char *msg);
+ void syntaxerror (const char *str);
+ void semanticerror (const char *str);
+ void semanticwarning ( char *str);
+ char* concat(char* s1, char* s2);
 %}
 
 %option yylineno
 
+Delimiter                       [ \t]
+bl                              {Delimiter}+
 
-delim     [ \t]
-bl        {delim}+
-chiffre   [0-9]
-lettre    [a-zA-Z]
-string    \"[^\"]*\"
-id        ({lettre}|_|$)({lettre}|{chiffre}|_|$)*
-integer    {chiffre}+
-boolean   true|false
-nb        ("-")?{chiffre}+("."{chiffre}+)?(("E"|"e")"-"?{chiffre}+)?
-iderrone  {chiffre}({lettre}|{chiffre})*
-parenth_ouvrante  (\()
-parenth_fermante  (\))
-acc_ouvrante  (\{)
-acc_fermante  (\})
-c_ouvrante  (\[)
-c_fermante  (\])
-point_virgule   (";")
-virgule     (",")
-point       (".")
-type      (int|int\[\]|boolean|boolean\[\]|String|String\[\])
-COMMENT_BLOCK_ERROR    \/\*([^(\*\/)]|\n)*
-COMMENT_LINE        \/\/
-COMMENT_BLOCK        (\/\*)([^\*\/]|\n)*(\*\/)
+Number                          [0-9]
+Letter                          [a-zA-Z]
+Error_character                 .
 
+Boolean                         True|False
+Integer                         {Number}+
+String                          \"([^"\n]|\"\")+\"
+Error_string                    \"([^"\n]|\"\")+
+Identifier                      ({Letter}|"_")({Letter}|{Number}|"_")*
+Error_identifier                {Number}({Letter}|{Number}|"_")*
 
-%%
+Parenthese_open                 (\()
+Parenthese_close                (\))
+Bracket_open                    (\[)
+Bracket_close                   (\])
+Brace_open                      (\{)
+Brace_close                     (\})
 
-{bl}                                                                                 /* pas d'actions */
-"\n" 			                                                                   line++;
-"class"                                                                            return(CLASS);
-"extends"                                                                          return(EXTENDS);
-"public"                                                                           return(PUBLIC);
-"private"                                                                          return(PRIVATE);
-"static"                                                                           return(STATIC);
-"main"                                                                             return(MAIN);
-"return"                                                                           return(RETURN);
-"this"                                                                             return(THIS);
-"while"                                                                            return(WHILE);
-"if"                                                                               return(IF);
-"else"                                                                             return(ELSE);
-"protected"                                                                        return(PROTECTED);
-"System.out.println"                                                               return(SYSTEM_OUT_PRINTLN);
-"interface"                                                                        return(INTERFACE);
-"for"                                                                              return(FOR);
-"continue"                                                                         return(CONTINUE);
-"break"                                                                            return(BREAK);
-"null"                                                                             return(NUL);
-"new"                                                                              return(NEW);
-"length"                                                                           return(LENGTH);
-
-
-"String"                                                                           return(STR);
-"void"                                                                             return(VOID);
-
-
-{COMMENT_BLOCK}                                                             
-{parenth_ouvrante}                                                                 return(P_OUVRANTE);
-{parenth_fermante}                                                                 return(P_FERMANTE);
-{c_ouvrante}                                                                       return(C_OUVRANTE);
-{c_fermante}                                                                       return(C_FERMANTE);
-{acc_ouvrante}                                                                     return(BLOCK_START);
-{acc_fermante}                                                                     return(BLOCK_END);
-
-{integer}                                                                          return(INTEGER_LITERAL);
-{boolean}                                                                          return(BOOLEAN_LITERAL);
-{string}                                                                           return(STRING);
-{virgule}                                                                          return(VIRGULE);
-{point_virgule}                                                                    return(POINT_VIRGULE);
-{point}                                                                            return(POINT);
-"boolean"									     								   return BOOLEAN;
-"int"										     								   return INT;
-
-
-"="	                                                                               return(OPPAFFECT);
-"=="                                                                               return(OPPEQUALITY);
-"!="                                                                               return(OPPINEQUALITY);
-">="                                                                               return(OPPSUPEQUALITY);
-"<="                                                                               return(OPPINFEQUALITY);
-"<"                                                                                return(OPPINF);
-">"                                                                                return(OPPSUP); 
-"&&"                                                                               return(OPPAND); 
-"||"                                                                               return(OPPOR);
-"+"                                                                                return(OPPADD);
-"-"                                                                                return(OPPSUB); 
-"*"                                                                                return(OPPMULTIPLY);
-"/"                                                                                return(OPPDIV);  
-"!"                                                                                return(NOT);
-
-{id}                                                                               return(ID);
-
-{COMMENT_BLOCK_ERROR}                                        {fprintf(stderr,"comment block error :%d",yylineno);}
-
-{iderrone}              {fprintf(stderr,"illegal identifier \'%s\' on line :%d\n",yytext,yylineno);}
-	
+Comment_block                   "/*"([^*]|\*+[^*/])*\*+"/"
+Comment_line                    "//".*\n
+Error_comment                   \/\*([^(\*\/)]|\n)*
 
 %%
 
+"class"                               return KEYWORD_CLASS;
+"public"                              return KEYWORD_PUBLIC;
+"static void main"                    return KEYWORD_MAIN;
+"extends"                             return KEYWORD_EXTENDS;
+"return"                              return KEYWORD_RETURN;
+"if"                                  return KEYWORD_IF;
+"else"                                return KEYWORD_ELSE;
+"while"                               return KEYWORD_WHILE;
+"System.out.println"                  return KEYWORD_PRINT;
+"length"                              return KEYWORD_LENGTH;
+"this"                                return KEYWORD_THIS;
+"new"                                 return KEYWORD_NEW;
 
-int yywrap(void)
+"int"                                 return TYPE_INT;
+"boolean"                             return TYPE_BOOLEAN;
+"String"                              return TYPE_STRING;
+
+{Boolean}							  return BOOLEAN_LITERAL;
+{Integer}                             {yylval = atoi(yytext);return INTEGER_LITERAL;}
+{String}							  return STRING_LITERAL;
+{Identifier}                          {strcpy(nom, yytext);return IDENTIFIER;}
+
+{Parenthese_open}                     return PARENTHESE_OPEN;
+{Parenthese_close}                    return PARENTHESE_CLOSE;
+{Bracket_open}                        return BRACKET_OPEN;
+{Bracket_close}                       return BRACKET_CLOSE;
+{Brace_open}                          return BRACE_OPEN;
+{Brace_close}                         return BRACE_CLOSE;
+
+"="	                                  return OP_AFFECT;
+"&&"                                  return OP_AND;
+"<"                                   return OP_LESS;
+"+"                                   return OP_ADD;
+"-"                                   return OP_SUBSTRACT;
+"*"                                   return OP_MULTIPLY;
+"!"                                   return OP_NOT;
+
+";"                                   return SEMI_COLON;
+"."                                   return DOT;
+","                                   return COMMA;
+
+{bl}                                  /* no actions */
+"\n"			                      /* no actions */
+
+{Comment_line}         				  /* no actions */
+{Comment_block}         		      /* no actions */
+
+{Error_identifier}                    {lexicerror(concat("illegal identifier ", yytext));}
+{Error_comment}                    	  {lexicerror("unclosed comment");}
+{Error_string}                    	  {lexicerror("unclosed string");}
+{Error_character}                     {lexicerror(concat("illegal character ", yytext));}
+%%
+
+/*
+int main(int argc, char *argv[])
 {
-	return(1);
+     yyin = fopen(argv[1], "r");
+     yylex();
+     fclose(yyin);
+}
+*/
+
+void yyerror(const char *str)
+{
+
+    if(str[0]=='s'){
+        return;
+    }
+    fprintf(stderr,"=> %s\n",str);
+}
+
+void lexicerror ( const char *msg ){
+    i++;
+    char errstr[200];
+        sprintf(errstr,"Lexical error on line %d, %s",yylineno,msg);
+    yyerror(errstr);
+}
+
+void syntaxerror (const char *str){
+    i++;
+    char errstr[200];
+    sprintf(errstr,"Syntax error on line %d, %s",yylineno,str);
+    yyerror(errstr);
+}
+
+void semanticerror (const char *str){
+    i++;
+    char errstr[200];
+    sprintf(errstr,"Semantic error on line %d, %s",yylineno,str);
+    yyerror(errstr);
+}
+
+void semanticwarning (char *nom){
+    j++;
+    char errstr[200];
+    sprintf(errstr,"Semantic warning on line %d, declared variable is not used: %s",yylineno,nom);
+    yyerror(errstr);
+}
+
+int yywrap()
+{
+
 }
