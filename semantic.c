@@ -357,3 +357,18 @@ char* concat(const char* s1, char* s2){
     strcat(message, s2);
     return message;
 }
+
+int getAdress (const char* nom, TABLE_NOUED table) {
+    if( !table )
+        return -1;
+    NOEUD noeud = table;
+    int pos=0;
+    while( noeud ){
+        if (strcmp(nom, noeud->nom) == 0){
+            return pos;
+        }
+        pos++;
+        noeud = noeud->suivant;
+    }
+    return -1;
+}

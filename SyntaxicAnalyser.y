@@ -1,17 +1,22 @@
 %{
     #include "semantic.c"
+    #include "codeGenerator.c"
     #include <stdio.h>
     #include <stdlib.h>
     #include <string.h>
 
+    int num;
     char nom[256];
-
+    char oper[10];
+    char name[256];
 	int yylex(void);
 	extern int yylineno;
 	extern int i;
     extern int j;
 	void yyerror(const char *str);
 	void syntaxerror (const char *str);
+    void BeginCodeGen();
+    void EndCodeGen();
 	void Begin();
     void End();
 %}
@@ -144,7 +149,7 @@ Statement              : BRACE_OPEN StatementS BRACE_CLOSE
                        | KEYWORD_PRINT PARENTHESE_OPEN Expression PARENTHESE_CLOSE SEMI_COLON
                        | KEYWORD_PRINT PARENTHESE_OPEN Expression PARENTHESE_CLOSE error {syntaxerror ("semicolon missing"); }
                        | KEYWORD_PRINT PARENTHESE_OPEN Expression error SEMI_COLON {syntaxerror ("closing parentheses missing"); }
-                       | Identifieraff OP_AFFECT Expression SEMI_COLON
+                       | Identifieraff OP_AFFECT Expression SEMI_COLON { genCode("STORE", getAdress(name,table_local),NULL);}
                        | Identifieraff OP_AFFECT Expression error {syntaxerror ("semicolon missing"); }
                        | Identifieraff OP_AFFECT error SEMI_COLON {syntaxerror ("second expression missing"); }
                        | Identifieraff error Expression SEMI_COLON{syntaxerror ("'=' expected"); }
@@ -154,7 +159,7 @@ Statement              : BRACE_OPEN StatementS BRACE_CLOSE
                        | Identifieraff BRACKET_OPEN Expression BRACKET_CLOSE error Expression SEMI_COLON {syntaxerror ("'=' expected"); }
                        | Identifieraff BRACKET_OPEN Expression BRACKET_CLOSE OP_AFFECT Expression error {syntaxerror ("semicolon missing"); }
                        ;
-Expression             : INTEGER_LITERAL ExpressionComp
+Expression             : INTEGER_LITERAL { genCode("LDC",$1,NULL); } ExpressionComp
                        | BOOLEAN_LITERAL ExpressionComp
                        | STRING_LITERAL ExpressionComp
                        | Identifierexp ExpressionComp
@@ -176,7 +181,7 @@ Expression             : INTEGER_LITERAL ExpressionComp
                        | error Expression PARENTHESE_CLOSE ExpressionComp {syntaxerror ("opening parentheses missing"); }
                        | PARENTHESE_OPEN Expression error ExpressionComp {syntaxerror ("closing parentheses missing"); }
                        ;
-ExpressionComp         : Operator Expression ExpressionComp
+ExpressionComp         : Operator Expression {genCode(oper,-1,NULL);} ExpressionComp
                        | BRACKET_OPEN Expression BRACKET_CLOSE ExpressionComp
                        | BRACKET_OPEN Expression error ExpressionComp  {syntaxerror ("closing bracket missing"); }
                        | DOT KEYWORD_LENGTH ExpressionComp
@@ -195,17 +200,17 @@ ExpressionS            : Expression {g_nbParam ++;} COMMA ExpressionS
                        | Expression {g_nbParam ++;}
                        | Expression error ExpressionS {syntaxerror ("comma missing"); }
                        ;
-Operator               : OP_ADD
+Operator               : OP_ADD {strcpy(oper, "ADD");}
                        | OP_AND
-                       | OP_LESS
-                       | OP_MULTIPLY
-                       | OP_SUBSTRACT
+                       | OP_LESS {strcpy(oper, "<");}
+                       | OP_MULTIPLY {strcpy(oper, "MUL");}
+                       | OP_SUBSTRACT {strcpy(oper, "SUB");}
                        ;
 Identifier             : IDENTIFIER
                        ;
-Identifierexp          : IDENTIFIER {checkID(nom);}
+Identifierexp          : IDENTIFIER {checkID(nom); genCode("LDV",getAdress(nom,table_local),NULL);}
                        ;
-Identifieraff          : IDENTIFIER {checkIDOnInit(nom);}
+Identifieraff          : IDENTIFIER {checkIDOnInit(nom);  strcpy(name, nom);}
                        ;
 
 
@@ -215,19 +220,25 @@ Identifieraff          : IDENTIFIER {checkIDOnInit(nom);}
 
 extern FILE *yyin;
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv){
     yyin = fopen(argv[1], "r");
     Begin();
+    BeginCodeGen();
     yyparse();
+    EndCodeGen();
     End();
     return 1;
 }
 
+void BeginCodeGen(){
+    creerTabCodeInt();
+}
 
+void EndCodeGen(){
+    display();
+}
 
-void Begin()
-{
+void Begin(){
 	table = NULL;
 	table_local = NULL;
 	table_class = NULL;
@@ -241,8 +252,7 @@ void Begin()
     g_IfClass = 0 ;
 }
 
-void End()
-{
+void End(){
     fclose(yyin);
     destructSymbolsTable(table_local);
 	destructSymbolsTable(table);
