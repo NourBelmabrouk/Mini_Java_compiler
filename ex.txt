@@ -2,7 +2,7 @@ class Factorial{
     public static void main(String[] a){
         int x;
 	int y;
-	x=4;
+	x=6;
 	y=5+4;
 	x=y+3;
 	if (y<x){
@@ -17,3 +17,4 @@ class Factorial{
 	x=7;
     }
 }
+

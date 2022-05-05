@@ -29,8 +29,26 @@ def Compile():
     if (result == ""):
         result = "No errors were found. Compiled Successfully."
     print(result)
-    output.delete("1.0","end")
-    output.insert("1.0",result)
+
+
+def generate_code():
+    with open(filepath, "w") as output_file:
+        text = txt_edit.get(1.0, tk.END)
+        output_file.write(text)
+    result = subprocess.check_output(["compiler.exe", "<", "ex.txt"] , stderr=subprocess.STDOUT, shell=True)
+    result = result.decode('cp850')
+    result = result.strip()
+    if (result == ""):
+        output.delete("1.0","end")
+        f = open("result.txt", "r")
+        lines=f.readlines()
+        for x in reversed(lines):
+            output.insert("1.0",x)
+    else: 
+        output.delete("1.0","end")
+        output.insert("1.0","Program has some issues, compile first!")
+        
+
 
     
 
@@ -44,6 +62,7 @@ output = tk.Text(window, height = 15,width = 25)
 fr_buttons = tk.Frame(window, relief=tk.RAISED, bd=2)
 btn_open = tk.Button(fr_buttons, text="Open", command=open_file)
 btn_save = tk.Button(fr_buttons, text="Compile", command=Compile)
+btn_generate = tk.Button(fr_buttons, text="Generate", command=generate_code)
 label = tk.Label(window, text ='Result:',font = "50") 
 scroll_bar = tk.Scrollbar(window)
   
@@ -51,6 +70,7 @@ scroll_bar.grid(row=0,column=2,sticky="ns" )
 scroll_bar.config( command = txt_edit.yview )
 btn_open.grid(row=0, column=0, sticky="ew", padx=5, pady=5)
 btn_save.grid(row=1, column=0, sticky="ew", padx=5)
+btn_generate.grid(row=2, column=0, sticky="ew", padx=5)
 
 fr_buttons.grid(row=0, column=0, sticky="ns")
 txt_edit.grid(row=0, column=1, sticky="nswe", pady=15)
