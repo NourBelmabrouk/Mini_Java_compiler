@@ -5,10 +5,15 @@ class Factorial{
 	x=4;
 	y=5+4;
 	x=y+3;
-	if (y<x)
+	if (y<x){
 		x=y+1;
-	else
+	}
+	else {
 		y= x+1;
+	}
+	while(y<x){
+		x=x-1;
+	}
 	x=7;
     }
 }

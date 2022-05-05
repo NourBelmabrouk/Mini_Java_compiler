@@ -11,6 +11,8 @@
     char oper[10];
     char name[256];
     int trackIf;
+    int while1;
+    int while2;
 	int yylex(void);
 	extern int yylineno;
 	extern int i;
@@ -136,17 +138,20 @@ StatementS             : Statement StatementS
                        ;
 Statement              : BRACE_OPEN StatementS BRACE_CLOSE
                        | VarDeclaration
-                       | KEYWORD_IF PARENTHESE_OPEN Expression PARENTHESE_CLOSE {genCode("SIFAUX",-1,NULL); trackIf=indice;} StatementS { genCode("SAUT",-1,NULL); tabCodeInt[trackIf].operande=indice; trackIf=indice-1;}
-                       KEYWORD_ELSE StatementS {tabCodeInt[trackIf].operande=indice-1;}
+                       | KEYWORD_IF PARENTHESE_OPEN Expression PARENTHESE_CLOSE {genCode("SIFAUX",-1,NULL); trackIf=indice;} BRACE_OPEN StatementS BRACE_CLOSE { genCode("SAUT",-1,NULL); tabCodeInt[trackIf-1].operande=indice+1; trackIf=indice-1;}
+                       KEYWORD_ELSE BRACE_OPEN StatementS BRACE_CLOSE {tabCodeInt[trackIf].operande=indice+1;}
                        | KEYWORD_IF error Expression PARENTHESE_CLOSE StatementS KEYWORD_ELSE StatementS {syntaxerror ("opening parentheses missing"); }
                        | KEYWORD_IF PARENTHESE_OPEN Expression error Statement KEYWORD_ELSE StatementS {syntaxerror ("closing parentheses missing"); }
                        | KEYWORD_IF error StatementS KEYWORD_ELSE StatementS {syntaxerror ("if condition missing"); }
                        /*| KEYWORD_IF PARENTHESE_OPEN Expression PARENTHESE_CLOSE StatementS
                        | KEYWORD_IF PARENTHESE_OPEN Expression error StatementS {syntaxerror ("closing parentheses missing"); }
                        | KEYWORD_IF error StatementS {syntaxerror ("if condition missing"); } */
-                       | KEYWORD_WHILE PARENTHESE_OPEN Expression PARENTHESE_CLOSE StatementS
-                       | KEYWORD_WHILE PARENTHESE_OPEN Expression error StatementS {syntaxerror ("closing parentheses missing"); }
-                       | KEYWORD_WHILE error Statement {syntaxerror ("while condition missing"); }
+
+
+                       | KEYWORD_WHILE {while1=indice;} PARENTHESE_OPEN Expression PARENTHESE_CLOSE {genCode("TANTQUEFAUX",-1,NULL); while2=indice-1;}
+                        BRACE_OPEN StatementS BRACE_CLOSE {genCode("TANTQUE",while1+1,NULL); tabCodeInt[while2].operande=indice+1;}
+
+
                        | KEYWORD_PRINT PARENTHESE_OPEN Expression PARENTHESE_CLOSE SEMI_COLON
                        | KEYWORD_PRINT PARENTHESE_OPEN Expression PARENTHESE_CLOSE error {syntaxerror ("semicolon missing"); }
                        | KEYWORD_PRINT PARENTHESE_OPEN Expression error SEMI_COLON {syntaxerror ("closing parentheses missing"); }
