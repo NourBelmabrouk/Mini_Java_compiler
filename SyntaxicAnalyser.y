@@ -6,9 +6,11 @@
     #include <string.h>
 
     int num;
+    int indice;
     char nom[256];
     char oper[10];
     char name[256];
+    int trackIf;
 	int yylex(void);
 	extern int yylineno;
 	extern int i;
@@ -78,7 +80,7 @@ MainHead               : ClassHead BRACE_OPEN KEYWORD_PUBLIC KEYWORD_MAIN{ g_typ
                        | ClassHead BRACE_OPEN error KEYWORD_PUBLIC KEYWORD_MAIN PARENTHESE_OPEN TYPE_STRING BRACKET_OPEN BRACKET_CLOSE {syntaxerror ("public keyword missing");}
                        | ClassHead BRACE_OPEN error KEYWORD_MAIN PARENTHESE_OPEN TYPE_STRING BRACKET_OPEN BRACKET_CLOSE {syntaxerror ("public keyword missing");}
                        ;
-MainBody               : IDENTIFIER{ verifierVarID(nom);} PARENTHESE_CLOSE { foncDecEnd(); } BRACE_OPEN StatementS  BRACE_CLOSE {finFonction();} MethodDeclarationS BRACE_CLOSE {finClass();}
+MainBody               : IDENTIFIER{ verifierVarID(nom);} PARENTHESE_CLOSE { foncDecEnd(); } BRACE_OPEN StatementS  BRACE_CLOSE {finFonction(); genCode("SORTIE",-1,NULL);} MethodDeclarationS BRACE_CLOSE {finClass();}
                        ;
 ClassDeclarationS	   : ClassDeclaration ClassDeclarationS
                        |
@@ -113,7 +115,7 @@ MethodDeclarationS     : MethodDeclaration MethodDeclarationS
                        | MethodDeclaration error MethodDeclarationS {syntaxerror ("code out of method"); }
                        | MethodDeclaration MethodDeclarationS error {syntaxerror ("code out of method"); }
                        ;
-MethodDeclaration      : KEYWORD_PUBLIC Variable { verifierFoncID(nom); }PARENTHESE_OPEN VariableS PARENTHESE_CLOSE {foncDecEnd();} BRACE_OPEN StatementS  KEYWORD_RETURN Expression SEMI_COLON BRACE_CLOSE {finFonction();}
+MethodDeclaration      : KEYWORD_PUBLIC Variable { verifierFoncID(nom); }PARENTHESE_OPEN VariableS PARENTHESE_CLOSE {foncDecEnd();} BRACE_OPEN {genCode("ENTREE",-1,NULL);} StatementS  KEYWORD_RETURN Expression SEMI_COLON BRACE_CLOSE {finFonction();}
                        | error KEYWORD_PUBLIC Variable PARENTHESE_OPEN VariableS PARENTHESE_CLOSE BRACE_OPEN StatementS  KEYWORD_RETURN Expression SEMI_COLON BRACE_CLOSE {syntaxerror ("public keyword missing"); }
                        | KEYWORD_PUBLIC error Identifier PARENTHESE_OPEN VariableS PARENTHESE_CLOSE BRACE_OPEN StatementS  KEYWORD_RETURN Expression SEMI_COLON BRACE_CLOSE {syntaxerror ("type missing"); }
                        | KEYWORD_PUBLIC Type error PARENTHESE_OPEN VariableS PARENTHESE_CLOSE BRACE_OPEN StatementS  KEYWORD_RETURN Expression SEMI_COLON BRACE_CLOSE {syntaxerror ("method name missing"); }
@@ -133,23 +135,22 @@ StatementS             : Statement StatementS
                        |
                        ;
 Statement              : BRACE_OPEN StatementS BRACE_CLOSE
-                       | BRACE_OPEN StatementS error {syntaxerror ("closing brace missing"); }
-                       | error StatementS BRACE_CLOSE {syntaxerror ("opening brace missing"); }
                        | VarDeclaration
-                       | KEYWORD_IF PARENTHESE_OPEN Expression PARENTHESE_CLOSE StatementS KEYWORD_ELSE StatementS
+                       | KEYWORD_IF PARENTHESE_OPEN Expression PARENTHESE_CLOSE {genCode("SIFAUX",-1,NULL); trackIf=indice;} StatementS { genCode("SAUT",-1,NULL); tabCodeInt[trackIf].operande=indice; trackIf=indice-1;}
+                       KEYWORD_ELSE StatementS {tabCodeInt[trackIf].operande=indice-1;}
                        | KEYWORD_IF error Expression PARENTHESE_CLOSE StatementS KEYWORD_ELSE StatementS {syntaxerror ("opening parentheses missing"); }
                        | KEYWORD_IF PARENTHESE_OPEN Expression error Statement KEYWORD_ELSE StatementS {syntaxerror ("closing parentheses missing"); }
                        | KEYWORD_IF error StatementS KEYWORD_ELSE StatementS {syntaxerror ("if condition missing"); }
-                       | KEYWORD_IF PARENTHESE_OPEN Expression PARENTHESE_CLOSE StatementS
+                       /*| KEYWORD_IF PARENTHESE_OPEN Expression PARENTHESE_CLOSE StatementS
                        | KEYWORD_IF PARENTHESE_OPEN Expression error StatementS {syntaxerror ("closing parentheses missing"); }
-                       | KEYWORD_IF error StatementS {syntaxerror ("if condition missing"); }
+                       | KEYWORD_IF error StatementS {syntaxerror ("if condition missing"); } */
                        | KEYWORD_WHILE PARENTHESE_OPEN Expression PARENTHESE_CLOSE StatementS
                        | KEYWORD_WHILE PARENTHESE_OPEN Expression error StatementS {syntaxerror ("closing parentheses missing"); }
                        | KEYWORD_WHILE error Statement {syntaxerror ("while condition missing"); }
                        | KEYWORD_PRINT PARENTHESE_OPEN Expression PARENTHESE_CLOSE SEMI_COLON
                        | KEYWORD_PRINT PARENTHESE_OPEN Expression PARENTHESE_CLOSE error {syntaxerror ("semicolon missing"); }
                        | KEYWORD_PRINT PARENTHESE_OPEN Expression error SEMI_COLON {syntaxerror ("closing parentheses missing"); }
-                       | Identifieraff OP_AFFECT Expression SEMI_COLON { genCode("STORE", getAdress(name,table_local),NULL);}
+                       | Identifieraff OP_AFFECT Expression SEMI_COLON { genCode("STORE", getAdress(name,table_local)-1,NULL);}
                        | Identifieraff OP_AFFECT Expression error {syntaxerror ("semicolon missing"); }
                        | Identifieraff OP_AFFECT error SEMI_COLON {syntaxerror ("second expression missing"); }
                        | Identifieraff error Expression SEMI_COLON{syntaxerror ("'=' expected"); }
@@ -202,13 +203,13 @@ ExpressionS            : Expression {g_nbParam ++;} COMMA ExpressionS
                        ;
 Operator               : OP_ADD {strcpy(oper, "ADD");}
                        | OP_AND
-                       | OP_LESS {strcpy(oper, "<");}
+                       | OP_LESS {strcpy(oper, "INF");}
                        | OP_MULTIPLY {strcpy(oper, "MUL");}
                        | OP_SUBSTRACT {strcpy(oper, "SUB");}
                        ;
 Identifier             : IDENTIFIER
                        ;
-Identifierexp          : IDENTIFIER {checkID(nom); genCode("LDV",getAdress(nom,table_local),NULL);}
+Identifierexp          : IDENTIFIER {checkID(nom); genCode("LDV",getAdress(nom,table_local)-1,NULL);}
                        ;
 Identifieraff          : IDENTIFIER {checkIDOnInit(nom);  strcpy(name, nom);}
                        ;

@@ -7,7 +7,7 @@
 
 ENTREE_CODE *tabCodeInt;
 
-int indice ;
+extern int indice ;
 
 void creerTabCodeInt (){
     indice=0;
